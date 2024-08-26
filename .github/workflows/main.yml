@@ -1,42 +1,21 @@
-name: Maven Build and Deploy
-
-on:
-  push:
-    branches:
-      - main
+on: [push]
 
 jobs:
-  build:
+  zap_scan:
     runs-on: ubuntu-latest
-
+    name: Scan the webapplication
     steps:
-    - name: Check out the repository
-      uses: actions/checkout@v3
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          ref: master
 
-    - name: Set up JDK 17
-      uses: actions/setup-java@v3
-      with:
-        java-version: '17'
-
-    - name: Cache Maven packages
-      uses: actions/cache@v3
-      with:
-        path: ~/.m2/repository
-        key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
-        restore-keys: ${{ runner.os }}-maven
-
-    - name: Set up Maven settings
-      run: mkdir -p ~/.m2 && cp .github/maven/settings.xml ~/.m2/settings.xml
-
-    - name: Build with Maven
-      run: mvn clean install --settings ~/.m2/settings.xml
-
-    - name: Deploy to GitHub Packages
-      run: mvn deploy --settings ~/.m2/settings.xml
-      env:
-        GITHUB_ACTOR: ${{ github.actor }}
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-              - name: ZAP API Scan
-                uses: zaproxy/action-api-scan@v0.7.0
-            
+      - name: ZAP Scan
+        uses: zaproxy/action-api-scan@v0.7.0
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          docker_name: 'ghcr.io/zaproxy/zaproxy:stable'
+          format: openapi
+          target: 'https://www.zaproxy.org/'
+          rules_file_name: '.zap/rules.tsv'
+          cmd_options: '-a'
